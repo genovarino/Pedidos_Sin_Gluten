@@ -46,9 +46,9 @@
       var m=l.match(/- (\d+) x (.+) \(\$(.+)\)/);
       if(m){
         productos.push({
-          cantidad:parseInt(m[1]),
-          nombre:m[2],
-          subtotal:parseInt(m[3].replace(/\./g,''))
+        cantidad: parseInt(m[1]),
+        nombre: m[2],
+        subtotal: parseInt(m[3].replace(/[.,]/g,'')) // elimina puntos y comas
         });
       }
     });
@@ -58,7 +58,7 @@
       cliente: nombre,
       fecha: new Date().toISOString(),
       items: productos,
-      total: parseInt(total.replace(/\./g,''))
+      total: parseInt(total.replace(/[.,]/g,''))
     };
 
     var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
