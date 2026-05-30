@@ -107,8 +107,10 @@
     }
     if(items.length===0){alert("Selecciona al menos un producto");return;}
     var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"+items.join("\n")+"\n\nTotal: $"+total.toLocaleString();
-    var url="https://wa.me/?text="+encodeURIComponent(mensaje);
-    location.href=url;
+    // Número fijo de destino
+var numeroDestino = "5493515297792";
+var url = "https://wa.me/" + numeroDestino + "?text=" + encodeURIComponent(mensaje);
+location.href = url;
   }
 
   cargarProductosDesdeSheets();
