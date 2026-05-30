@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos Panadería - Admin</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f0e8; color: #4a3728; padding: 15px; }
+    .box { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #8B4513; margin-bottom: 5px; }
+    h2 { color: #8B4513; margin-bottom: 15px; font-size: 1.2em; border-bottom: 2px solid #e8ddd0; padding-bottom: 8px; }
+    .btn { padding: 12px; border: none; border-radius: 12px; font-size: 1em; font-weight: 700; cursor: pointer; margin-top: 10px; }
+    .btn-excel { background: #1d6f42; color: white; }
+    .btn-del { background: #dc3545; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+    th { background: #8B4513; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #e8ddd0; background: white; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Administración de Pedidos</h1>
+    <p style="text-align:center;color:#8B7355;">Pega aquí el texto del pedido recibido por WhatsApp</p>
+    <textarea id="pedidoTexto" rows="6" style="width:100%;padding:10px;border:2px solid #e8ddd0;border-radius:10px;"></textarea>
+    <button class="btn" onclick="guardarPedido()">Guardar Pedido</button>
+  </div>
+
+  <div class="box">
+    <h2>Pedidos Confirmados</h2>
+    <div id="tablaClientes"></div>
+    <button class="btn btn-excel" onclick="descargarExcel()">Exportar a Excel</button>
+    <button class="btn btn-del" onclick="limpiarPedidos()">Eliminar Todos</button>
+  </div>
+
+<script>
+  function guardarPedido() {
+    var txt = document.getElementById('pedidoTexto').value.trim();
+    if(!txt){alert("No hay texto");return;}
+
+    var nombre = (txt.match(/Cliente:\s*(.+)/i)||[])[1]||"";
+    var total = (txt.match(/Total:\s*\$?([\d\.]+)/i)||[])[1]||"0";
+    var productos = [];
+    var lineas = txt.split("\n");
+    lineas.forEach(l=>{
+      var m=l.match(/- (\d+) x (.+) \(\$(.+)\)/);
+      if(m){
+        productos.push({
+          cantidad:parseInt(m[1]),
+          nombre:m[2],
+          subtotal:parseInt(m[3].replace(/\./g,''))
+        });
+      }
+    });
+
+    var pedido = {
+      id: Date.now(),
+      cliente: nombre,
+      fecha: new Date().toISOString(),
+      items: productos,
+      total: parseInt(total.replace(/\./g,''))
+    };
+
+    var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
+    pedidos.push(pedido);
+    localStorage.setItem('pedidosPanaderia',JSON.stringify(pedidos));
+    document.getElementById('pedidoTexto').value="";
+    cargarPedidos();
+  }
+
+  function cargarPedidos(){
+    var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
+    var div=document.getElementById('tablaClientes');
+    if(pedidos.length===0){div.innerHTML="<p style='text-align:center;color:#8B7355;'>No hay pedidos</p>";return;}
+    var html="<table><tr><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th></tr>";
+    pedidos.forEach(p=>{
+      var fecha=new Date(p.fecha).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      html+="<tr><td><b>"+p.cliente+"</b></td><td>"+fecha+"</td><td>"+p.items.length+"</td><td>$"+p.total.toLocaleString()+"</td></tr>";
+    });
+    html+="</table>";
+    div.innerHTML=html;
+  }
+
+  function descargarExcel(){
+    var pedidos=JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
+    if(pedidos.length===0){alert("No hay pedidos");return;}
+
+    // Hoja resumen por cliente
+    var cliData=pedidos.map(p=>{
+      return {Cliente:p.cliente,Fecha:new Date(p.fecha).toLocaleString('es-ES'),Total:p.total,CantProductos:p.items.length};
+    });
+
+    // Hoja detalle por artículo
+    var detData=[];
+    pedidos.forEach(p=>{
+      p.items.forEach(it=>{
+        detData.push({
+          Cliente:p.cliente,
+          Fecha:new Date(p.fecha).toLocaleString('es-ES'),
+          Producto:it.nombre,
+          Cantidad:it.cantidad,
+          Subtotal:it.subtotal,
+          TotalPedido:p.total
+        });
+      });
+    });
+
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(cliData),"Pedidos");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detData),"Detalle");
+    XLSX.writeFile(wb,"Pedidos_Panaderia.xlsx");
+  }
+
+  function limpiarPedidos(){
+    if(!confirm("Eliminar TODOS los pedidos?"))return;
+    localStorage.removeItem('pedidosPanaderia');
+    cargarPedidos();
+  }
+
+  cargarPedidos();
+</script>
+</body>
+</html>

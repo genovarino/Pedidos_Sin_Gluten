@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedidos Panadería - Cliente</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f0e8; color: #4a3728; padding: 15px; }
+    .box { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #8B4513; margin-bottom: 5px; }
+    h2 { color: #8B4513; margin-bottom: 15px; font-size: 1.2em; border-bottom: 2px solid #e8ddd0; padding-bottom: 8px; }
+    .input { width: 100%; padding: 12px; border: 2px solid #e8ddd0; border-radius: 10px; font-size: 1em; margin-bottom: 10px; }
+    .producto { background: #faf8f5; border: 2px solid #e8ddd0; border-radius: 12px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .prod-nombre { font-weight: 700; font-size: 1.05em; }
+    .prod-precio { font-weight: 800; color: #8B4513; font-size: 1.1em; margin-top: 4px; }
+    .cantidad { display: flex; align-items: center; gap: 8px; }
+    .btn-cant { width: 36px; height: 36px; border: none; background: #8B4513; color: white; font-size: 1.2em; border-radius: 50%; cursor: pointer; }
+    .cant-input { width: 50px; text-align: center; padding: 8px; border: 2px solid #e8ddd0; border-radius: 8px; font-size: 1.1em; font-weight: 700; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1em; font-weight: 700; cursor: pointer; margin-top: 10px; }
+    .btn-whatsapp { background: #25D366; color: white; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Pedidos de Panadería</h1>
+    <p style="text-align:center;color:#8B7355;">Selecciona tus productos y envíanos tu pedido</p>
+  </div>
+
+  <div class="box">
+    <h2>Tus Datos</h2>
+    <input type="text" id="nombre" class="input" placeholder="Nombre">
+    <input type="text" id="apellido" class="input" placeholder="Apellido">
+  </div>
+
+  <div class="box">
+    <h2>Productos</h2>
+    <div id="listaProductos"></div>
+  </div>
+
+  <div class="box">
+    <button class="btn btn-whatsapp" onclick="enviarPedido()">Enviar Pedido por WhatsApp</button>
+  </div>
+
+<script>
+  var PRODUCTOS = [];
+  var carrito = {};
+
+  // 🔗 Pega aquí tu link publicado de Google Sheets (CSV)
+  var SHEET_URL = "https://script.google.com/macros/s/AKfycbwNh9rc4OojiEOjvvvBCx-9Sq5xkP4ys2VkKZSb5tcMNOt_lNbgnEnyD_QG6VQ4ZpWI/exec";
+
+  function cargarProductosDesdeSheets() {
+    fetch(SHEET_URL)
+      .then(res => res.text())
+      .then(texto => {
+        PRODUCTOS = [];
+        var filas = texto.split("\n");
+        for(var i=1; i<filas.length; i++){ // saltar encabezado
+          var cols = filas[i].split(",");
+          if(cols.length>=3){
+            PRODUCTOS.push({
+              id: parseInt(cols[0]),
+              nombre: cols[1],
+              precio: parseFloat(cols[2])
+            });
+          }
+        }
+        renderProductos();
+      });
+  }
+
+  function renderProductos() {
+    var div = document.getElementById('listaProductos');
+    var html = '';
+    PRODUCTOS.forEach(p => {
+      html += '<div class="producto">'
+        + '<div><div class="prod-nombre">'+p.nombre+'</div>'
+        + '<div class="prod-precio">$'+p.precio.toLocaleString()+'</div></div>'
+        + '<div class="cantidad">'
+        + '<button class="btn-cant" onclick="cambiarCant('+p.id+',-1)">-</button>'
+        + '<input type="number" class="cant-input" id="cant-'+p.id+'" value="0" min="0">'
+        + '<button class="btn-cant" onclick="cambiarCant('+p.id+',1)">+</button>'
+        + '</div></div>';
+    });
+    div.innerHTML = html;
+  }
+
+  function cambiarCant(id, delta) {
+    var inp = document.getElementById('cant-'+id);
+    var v = parseInt(inp.value)||0;
+    v = Math.max(0,v+delta);
+    inp.value = v;
+    if(v>0) carrito[id]=v; else delete carrito[id];
+  }
+
+  function enviarPedido() {
+    var nom = document.getElementById('nombre').value.trim();
+    var ape = document.getElementById('apellido').value.trim();
+    if(!nom||!ape){alert("Completa nombre y apellido");return;}
+    var items = [];
+    var total=0;
+    for(var id in carrito){
+      var p=PRODUCTOS.find(x=>x.id==id);
+      var qty=carrito[id];
+      var sub=p.precio*qty;
+      total+=sub;
+      items.push("- "+qty+" x "+p.nombre+" ($"+sub.toLocaleString()+")");
+    }
+    if(items.length===0){alert("Selecciona al menos un producto");return;}
+    var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"+items.join("\n")+"\n\nTotal: $"+total.toLocaleString();
+    var url="https://wa.me/?text="+encodeURIComponent(mensaje);
+    location.href=url;
+  }
+
+  cargarProductosDesdeSheets();
+</script>
+</body>
+</html>
