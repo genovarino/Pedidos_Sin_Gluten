@@ -48,8 +48,7 @@
         productos.push({
         cantidad: parseInt(m[1]),
         nombre: m[2],
-        subtotal: parseInt(m[3].replace(/[.,]/g,'')) // elimina puntos y comas
-        });
+        subtotal: parseInt(m[3].replace(/\D/g,'')) // elimina todo lo que no sea dígito
       }
     });
 
@@ -58,7 +57,7 @@
       cliente: nombre,
       fecha: new Date().toISOString(),
       items: productos,
-      total: parseInt(total.replace(/[.,]/g,''))
+      total: parseInt(total.replace(/\D/g,''))
     };
 
     var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
