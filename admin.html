@@ -35,37 +35,39 @@
 
 <script>
   function guardarPedido() {
-    var txt = document.getElementById('pedidoTexto').value.trim();
-    if(!txt){alert("No hay texto");return;}
+  var txt = document.getElementById('pedidoTexto').value.trim();
+  if(!txt){alert("No hay texto");return;}
 
-    var nombre = (txt.match(/Cliente:\s*(.+)/i)||[])[1]||"";
-    var total = (txt.match(/Total:\s*\$?([\d\.]+)/i)||[])[1]||"0";
-    var productos = [];
-    var lineas = txt.split("\n");
-    lineas.forEach(l=>{
-      var m=l.match(/- (\d+) x (.+) \(\$(.+)\)/);
-      if(m){
-        productos.push({
+  var nombre = (txt.match(/Cliente:\s*(.+)/i)||[])[1]||"";
+  var total = (txt.match(/Total:\s*\$?([\d\.,]+)/i)||[])[1]||"0";
+  var productos = [];
+  var lineas = txt.split("\n");
+
+  lineas.forEach(l=>{
+    var m = l.match(/- (\d+) x (.+) \(\$(.+)\)/);
+    if(m){
+      productos.push({
         cantidad: parseInt(m[1]),
         nombre: m[2],
         subtotal: parseInt(m[3].replace(/\D/g,'')) // elimina todo lo que no sea dígito
-      })
-    });
+      });
+    }
+  });
 
-    var pedido = {
-      id: Date.now(),
-      cliente: nombre,
-      fecha: new Date().toISOString(),
-      items: productos,
-      total: parseInt(total.replace(/\D/g,''))
-    };
+  var pedido = {
+    id: Date.now(),
+    cliente: nombre,
+    fecha: new Date().toISOString(),
+    items: productos,
+    total: parseInt(total.replace(/\D/g,'')) // también limpia comas, puntos y $
+  };
 
-    var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
-    pedidos.push(pedido);
-    localStorage.setItem('pedidosPanaderia',JSON.stringify(pedidos));
-    document.getElementById('pedidoTexto').value="";
-    cargarPedidos();
-  }
+  var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
+  pedidos.push(pedido);
+  localStorage.setItem('pedidosPanaderia',JSON.stringify(pedidos));
+  document.getElementById('pedidoTexto').value="";
+  cargarPedidos();
+}
 
   function cargarPedidos(){
     var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
