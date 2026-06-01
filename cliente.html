@@ -93,25 +93,41 @@
   }
 
   function enviarPedido() {
-    var nom = document.getElementById('nombre').value.trim();
-    var ape = document.getElementById('apellido').value.trim();
-    if(!nom||!ape){alert("Completa nombre y apellido");return;}
-    var items = [];
-    var total=0;
-    for(var id in carrito){
-      var p=PRODUCTOS.find(x=>x.id==id);
-      var qty=carrito[id];
-      var sub=p.precio*qty;
-      total+=sub;
-      items.push("- "+qty+" x "+p.nombre+" ($"+sub.toLocaleString()+")");
-    }
-    if(items.length===0){alert("Selecciona al menos un producto");return;}
-    var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"+items.join("\n")+"\n\nTotal: $"+total.toLocaleString();
-    // Número fijo de destino
-var numeroDestino = "5493515297792";
-var url = "https://wa.me/" + numeroDestino + "?text=" + encodeURIComponent(mensaje);
-location.href = url;
+  var nom = document.getElementById('nombre').value.trim();
+  var ape = document.getElementById('apellido').value.trim();
+  if(!nom||!ape){alert("Completa nombre y apellido");return;}
+
+  var items = [];
+  var total=0;
+  for(var id in carrito){
+    var p=PRODUCTOS.find(x=>x.id==id);
+    var qty=carrito[id];
+    var sub=p.precio*qty;
+    total+=sub;
+    items.push({producto:p.nombre,cantidad:qty,subtotal:sub});
   }
+  if(items.length===0){alert("Selecciona al menos un producto");return;}
+
+  var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"
+    + items.map(it=>"- "+it.cantidad+" x "+it.producto+" ($"+it.subtotal.toLocaleString()+")").join("\n")
+    + "\n\nTotal: $"+total.toLocaleString();
+
+  // 🔗 Enviar a WhatsApp
+  var numeroDestino = "5493515297792";
+  var url = "https://wa.me/" + numeroDestino + "?text=" + encodeURIComponent(mensaje);
+  location.href = url;
+
+  // 🔗 Registrar en Google Sheets vía Apps Script
+  fetch("https://script.google.com/macros/s/TU_ID/exec", {
+    method: "POST",
+    body: JSON.stringify({
+      cliente: nom+" "+ape,
+      fecha: new Date().toISOString(),
+      items: items,
+      total: total
+    })
+  }).then(r=>console.log("Pedido registrado en Sheets"));
+}
 
   cargarProductosDesdeSheets();
 </script>
