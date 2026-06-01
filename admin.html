@@ -70,17 +70,25 @@
 }
 
   function cargarPedidos(){
-    var pedidos = JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
-    var div=document.getElementById('tablaClientes');
-    if(pedidos.length===0){div.innerHTML="<p style='text-align:center;color:#8B7355;'>No hay pedidos</p>";return;}
-    var html="<table><tr><th>Cliente</th><th>Fecha</th><th>Productos</th><th>Total</th></tr>";
-    pedidos.forEach(p=>{
-      var fecha=new Date(p.fecha).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      html+="<tr><td><b>"+p.cliente+"</b></td><td>"+fecha+"</td><td>"+p.items.length+"</td><td>$"+p.total.toLocaleString()+"</td></tr>";
+  fetch("https://docs.google.com/spreadsheets/d/e/TU_ID/pub?output=csv")
+    .then(res=>res.text())
+    .then(texto=>{
+      var filas = texto.trim().split("\n");
+      var pedidos = [];
+      for(var i=1;i<filas.length;i++){
+        var cols = filas[i].split(/[,;]+/);
+        pedidos.push({
+          cliente: cols[0],
+          fecha: cols[1],
+          producto: cols[2],
+          cantidad: parseInt(cols[3]),
+          subtotal: parseInt(cols[4]),
+          total: parseInt(cols[5])
+        });
+      }
+      renderPedidos(pedidos);
     });
-    html+="</table>";
-    div.innerHTML=html;
-  }
+}
 
   function descargarExcel(){
     var pedidos=JSON.parse(localStorage.getItem('pedidosPanaderia')||'[]');
