@@ -31,6 +31,12 @@
     <div id="tablaClientes"></div>
     <button class="btn btn-excel" onclick="descargarExcel()">Exportar a Excel</button>
     <button class="btn btn-del" onclick="limpiarPedidos()">Eliminar Todos</button>
+    <input type="date" id="inicio">
+<input type="date" id="fin">
+<button onclick="exportarPedidos(
+  document.getElementById('inicio').value,
+  document.getElementById('fin').value
+)">Exportar a Excel</button>
   </div>
 
 <script>
@@ -128,5 +134,39 @@
 
   cargarPedidos();
 </script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function exportarPedidos(fechaInicio, fechaFin){
+  fetch("https://docs.google.com/spreadsheets/d/e/TU_ID/pub?output=csv")
+    .then(res=>res.text())
+    .then(texto=>{
+      var filas = texto.trim().split("\n");
+      var resumen = {};
+
+      for(var i=1;i<filas.length;i++){
+        var cols = filas[i].split(/[,;]+/);
+        var fecha = new Date(cols[1]);
+        if(fecha >= new Date(fechaInicio) && fecha <= new Date(fechaFin)){
+          var producto = cols[2];
+          var cantidad = parseInt(cols[3]);
+          if(!resumen[producto]) resumen[producto]=0;
+          resumen[producto]+=cantidad;
+        }
+      }
+
+      // Convertir a hoja Excel
+      var datos = [["Producto","Cantidad"]];
+      for(var p in resumen){
+        datos.push([p,resumen[p]]);
+      }
+      var wb = XLSX.utils.book_new();
+      var ws = XLSX.utils.aoa_to_sheet(datos);
+      XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+      XLSX.writeFile(wb, "Pedidos_"+fechaInicio+"_a_"+fechaFin+".xlsx");
+    });
+}
+</script>
+  
 </body>
 </html>
