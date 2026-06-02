@@ -45,8 +45,11 @@
   var PRODUCTOS = [];
   var carrito = {};
 
-  // 🔗 Pega aquí tu link publicado de Google Sheets (CSV)
+  // 🔗 Link publicado de tu hoja de productos (CSV)
   var SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTe9jGqBdvguMLjnGluPO6DBr-WcXe2rCmOJqTW-0YZAlnX49N05Lqg-f_ebedN-DQcNz2VYHsOTe-h/pub?output=csv";
+
+  // 🔗 Link de tu Apps Script publicado como web app (/exec)
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNWHRapmdsYio-9WKTinSCGIo0XiyW8_jcYHECeMLQLJU0zbtK-4FlghLx6_puYPU/exec";
 
   function cargarProductosDesdeSheets() {
     fetch(SHEET_URL)
@@ -99,18 +102,37 @@
     var items = [];
     var total=0;
     for(var id in carrito){
-      var p=PRODUCTOS.find(x=>x.id==id);
+      var p=PRODUCTOS.find(x=>x.id===parseInt(id));
       var qty=carrito[id];
       var sub=p.precio*qty;
       total+=sub;
-      items.push("- "+qty+" x "+p.nombre+" ($"+sub.toLocaleString()+")");
+      items.push({producto:p.nombre,cantidad:qty,subtotal:sub});
     }
     if(items.length===0){alert("Selecciona al menos un producto");return;}
-    var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"+items.join("\n")+"\n\nTotal: $"+total.toLocaleString();
-    // Número fijo de destino
-var numeroDestino = "5493515297792";
-var url = "https://wa.me/" + numeroDestino + "?text=" + encodeURIComponent(mensaje);
-location.href = url;
+
+    var mensaje="*Nuevo Pedido - Panadería*\n\nCliente: "+nom+" "+ape+"\nProductos:\n"
+      + items.map(it=>"- "+it.cantidad+" x "+it.producto+" ($"+it.subtotal.toLocaleString()+")").join("\n")
+      + "\n\nTotal: $"+total.toLocaleString();
+
+    // Enviar a WhatsApp
+    var numeroDestino = "5493515297792";
+    var url = "https://wa.me/" + numeroDestino + "?text=" + encodeURIComponent(mensaje);
+    location.href = url;
+
+    // Registrar en Google Sheets vía Apps Script
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cliente: nom+" "+ape,
+        fecha: new Date().toISOString(),
+        items: items,
+        total: total
+      })
+    })
+    .then(r=>r.text())
+    .then(txt=>console.log("Respuesta del servidor:", txt))
+    .catch(err=>console.error("Error al registrar pedido:", err));
   }
 
   cargarProductosDesdeSheets();
